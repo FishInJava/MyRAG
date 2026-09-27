@@ -10,7 +10,7 @@
 在执⾏任何阶段之前，必须先读取以下文件，它们定义了输出结果的**格式、风格和属性**。这些文件是本 spec 的一部分，缺省不可。
 
 ```
-00模板/
+template/
 ├── 0生成MD文档时注意事项.md   ← 生成 MD 文档的强制规则
 ├── 1笔记属性.md              ← frontmatter 模板
 ├── ME/
@@ -123,7 +123,7 @@ intermediate/atomize/{file_hash}/
 **LLM 任务**：
 对输入文本执行原子化拆分，每张卡片草稿包含：
 
-> **前置条件**：先读取 `00模板/0生成MD文档时注意事项.md` 和 `00模板/ME/HBZ风格prompt.md`，确保输出的内容符合 HBZ 风格和文档规范。
+> **前置条件**：先读取 `template/0生成MD文档时注意事项.md` 和 `template/ME/HBZ风格prompt.md`，确保输出的内容符合 HBZ 风格和文档规范。
 
 ```yaml
 cards:
@@ -133,7 +133,7 @@ cards:
     subtopic: 候选子主题（如：异步、Docker）
     content: |
       AI 用自己的话重写的内容，长度不限。
-      风格：遵循 HBZ 风格（见 00模板/ME/HBZ风格prompt.md）。
+      风格：遵循 HBZ 风格（见 template/ME/HBZ风格prompt.md）。
     source_refs:
       - file: 来源文件路径
         location: 原文位置描述
@@ -296,10 +296,10 @@ confidence: high
 - 链接只建一次（处理时），不运行时自动维护
 - 文件内 TOC 随内容更新自动维护
 
-> **前置条件**：写入文件前，先读取全部 `00模板/` 文件，确保：
-> - frontmatter 格式正确（参考 `00模板/1笔记属性.md`）
-> - 文风符合 HBZ 风格（参考 `00模板/ME/HBZ风格prompt.md`）
-> - 符号使用规范（参考 `00模板/0生成MD文档时注意事项.md`）
+> **前置条件**：写入文件前，先读取全部 `template/` 文件，确保：
+> - frontmatter 格式正确（参考 `template/1笔记属性.md`）
+> - 文风符合 HBZ 风格（参考 `template/ME/HBZ风格prompt.md`）
+> - 符号使用规范（参考 `template/0生成MD文档时注意事项.md`）
 
 ### 阶段 5: INDEX（索引）
 
@@ -322,7 +322,7 @@ myObsidian/_meta/
 
 ## 3. 输出格式规范
 
-> 输出的格式、风格、frontmatter 由 `00模板/` 中的文件定义（见第 0 节）。
+> 输出的格式、风格、frontmatter 由 `template/` 中的文件定义（见第 0 节）。
 > 以下仅为 schema 层面的字段说明，具体写作风格以模板文件为准。
 
 ### 3.1 frontmatter 字段

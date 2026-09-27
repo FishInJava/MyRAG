@@ -18,12 +18,12 @@ NEWDATA_DIR = PROJECT_ROOT / "newData"
 INTERMEDIATE_DIR = PROJECT_ROOT / "intermediate"
 MYOBSIDIAN_DIR = PROJECT_ROOT / "myObsidian"
 PROCESSED_LOG = PROJECT_ROOT / "newData" / ".processed"
-TEMPLATES_DIR = PROJECT_ROOT / "00模板"
+TEMPLATES_DIR = PROJECT_ROOT / "template"
 
 # ─── Output Contract (用户自定义的输出规范) ────────────────────────
 
 def load_output_contract() -> dict[str, str]:
-    """Load all template files from 00模板/ as the output contract.
+    """Load all template files from template/ as the output contract.
 
     These files define the required format, style, and frontmatter for
     every markdown file the pipeline produces. They must be loaded before
@@ -84,12 +84,12 @@ def stage_atomize(extract_dir: Path, output_contract: dict[str, str]) -> Path:
     """Stage 2: Atomize text into knowledge cards.
 
     Args:
-        output_contract: 用户自定义输出规范（从 00模板/ 加载）
+        output_contract: 用户自定义输出规范（从 template/ 加载）
     """
     print(f"[2/5] ATOMIZE: {extract_dir.name}")
     # TODO: Implement LLM-based atomization
     # - Load output_contract templates as part of LLM prompt
-    # - Apply HBZ style and frontmatter format from 00模板/
+    # - Apply HBZ style and frontmatter format from template/
     output_dir = INTERMEDIATE_DIR / "atomize" / extract_dir.name
     output_dir.mkdir(parents=True, exist_ok=True)
     print(f"       → {output_dir}")
@@ -111,7 +111,7 @@ def stage_integrate(approved_path: Path, output_contract: dict[str, str]):
 
     Args:
         approved_path: 通过评审的卡片列表
-        output_contract: 用户自定义输出规范（从 00模板/ 加载）
+        output_contract: 用户自定义输出规范（从 template/ 加载）
     """
     print(f"[4/5] INTEGRATE")
     # TODO: Implement myObsidian integration
