@@ -1,5 +1,5 @@
 """
-MyRAG Pipeline — V1 Skeleton
+MyRAG Pipeline — V1 实现
 
 Usage:
     python pipeline.py                  # 处理 newData/ 中所有新增文件
@@ -8,6 +8,7 @@ Usage:
 
 import sys
 import hashlib
+import json
 from pathlib import Path
 from datetime import datetime
 
@@ -23,15 +24,7 @@ TEMPLATES_DIR = PROJECT_ROOT / "template"
 # ─── Output Contract (用户自定义的输出规范) ────────────────────────
 
 def load_output_contract() -> dict[str, str]:
-    """Load all template files from template/ as the output contract.
-
-    These files define the required format, style, and frontmatter for
-    every markdown file the pipeline produces. They must be loaded before
-    stages 2 (ATOMIZE) and 4 (INTEGRATE) and injected into the LLM prompt.
-
-    Returns:
-        dict mapping filename → full text content
-    """
+    """Load all template files from template/ as the output contract."""
     contract = {}
     if not TEMPLATES_DIR.exists():
         return contract
@@ -64,71 +57,229 @@ def mark_processed(file_hash_val: str):
         f.write(f"{file_hash_val}\n")
 
 
+def save_intermediate(data, filename: str, directory: Path):
+    """保存中间数据到文件"""
+    directory.mkdir(parents=True, exist_ok=True)
+    filepath = directory / filename
+    if hasattr(data, "__dataclass_fields__"):
+        # dataclass → JSON
+        import dataclasses
+        data_dict = dataclasses.asdict(data)
+        filepath.write_text(json.dumps(data_dict, ensure_ascii=False, indent=2), encoding="utf-8")
+    elif isinstance(data, list):
+        # list → JSON
+        import dataclasses
+        data_list = [dataclasses.asdict(item) if hasattr(item, "__dataclass_fields__") else item for item in data]
+        filepath.write_text(json.dumps(data_list, ensure_ascii=False, indent=2), encoding="utf-8")
+    else:
+        filepath.write_text(str(data), encoding="utf-8")
+    return filepath
+
+
 # ─── Pipeline Stages ─────────────────────────────────────────────
 
 def stage_extract(source_path: Path) -> Path:
     """Stage 1: Extract text + metadata from source file."""
     print(f"[1/5] EXTRACT: {source_path.name}")
-    # TODO: Implement extraction per source type
-    # - PDF → pdfplumber
-    # - HTML → pandoc
-    # - DOCX → pandoc
-    # - MD/TXT → direct read
-    output_dir = INTERMEDIATE_DIR / "extract" / file_hash(source_path)
-    output_dir.mkdir(parents=True, exist_ok=True)
-    print(f"       → {output_dir}")
-    return output_dir
+
+    from .extract import extract
+    extract_output = extract(source_path)
+
+    # 保存到 intermediate
+    extract_dir = INTERMEDIATE_DIR / "extract" / extract_output.meta.file_hash
+    extract_dir.mkdir(parents=True, exist_ok=True)
+
+    save_intermediate(extract_output.meta, "meta.json", extract_dir)
+    save_intermediate(extract_output, "extract.json", extract_dir)
+
+    # 保存纯文本
+    (extract_dir / "text.txt").write_text(extract_output.text, encoding="utf-8")
+
+    print(f"       → {extract_dir} ({len(extract_output.text)} chars)")
+    return extract_dir
 
 
 def stage_atomize(extract_dir: Path, output_contract: dict[str, str]) -> Path:
-    """Stage 2: Atomize text into knowledge cards.
-
-    Args:
-        output_contract: 用户自定义输出规范（从 template/ 加载）
-    """
+    """Stage 2: Atomize text into knowledge cards."""
     print(f"[2/5] ATOMIZE: {extract_dir.name}")
-    # TODO: Implement LLM-based atomization
-    # - Load output_contract templates as part of LLM prompt
-    # - Apply HBZ style and frontmatter format from template/
-    output_dir = INTERMEDIATE_DIR / "atomize" / extract_dir.name
-    output_dir.mkdir(parents=True, exist_ok=True)
-    print(f"       → {output_dir}")
-    return output_dir
+
+    from .atomize import atomize
+    from .schemas import ExtractOutput
+    from .config import config
+
+    # 读取提取结果
+    import json
+    extract_data = json.loads((extract_dir / "extract.json").read_text(encoding="utf-8"))
+    extract_output = ExtractOutput(
+        meta=extract_data["meta"],
+        text=extract_data.get("text", ""),
+    )
+
+    # 执行原子化
+    cards = atomize(extract_output, output_contract)
+
+    # 保存结果
+    atomize_dir = INTERMEDIATE_DIR / "atomize" / extract_dir.name
+    atomize_dir.mkdir(parents=True, exist_ok=True)
+    save_intermediate(cards, "cards.json", atomize_dir)
+
+    print(f"       → {atomize_dir} ({len(cards)} cards)")
+    return atomize_dir
 
 
 def stage_review(atomize_dir: Path) -> tuple[Path, Path]:
     """Stage 3: Review cards, classify as approved/review/rejected."""
     print(f"[3/5] REVIEW: {atomize_dir.name}")
-    # TODO: Implement multi-dimension review
-    output_dir = INTERMEDIATE_DIR / "review" / atomize_dir.name
-    output_dir.mkdir(parents=True, exist_ok=True)
-    print(f"       → {output_dir}")
-    return output_dir / "cards_approved.yaml", output_dir / "cards_review.md"
+
+    from .review import review_card, should_review
+    from .schemas import CardDraft, ReviewResult, ReviewReport, ReviewSummary, ReviewItem
+    import json
+
+    # 读取卡片
+    cards_data = json.loads((atomize_dir / "cards.json").read_text(encoding="utf-8"))
+    cards = [
+        CardDraft(
+            id=c["id"],
+            title=c["title"],
+            domain=c["domain"],
+            subtopic=c["subtopic"],
+            content=c.get("content", ""),
+            source_refs=c.get("source_refs", []),
+            tags=c.get("tags", []),
+        )
+        for c in cards_data
+    ]
+
+    # 评审每张卡片
+    approved = []
+    review_items = []
+    summary = ReviewSummary(total_cards=len(cards))
+
+    for card in cards:
+        try:
+            result = review_card(card)
+        except Exception as e:
+            # LLM 调用失败，标记为 review
+            print(f"       ⚠️  Review failed for {card.id}: {e}")
+            result = ReviewResult(
+                card_id=card.id,
+                overall="review",
+                action="review",
+                review_reason=f"评审失败: {str(e)}",
+            )
+
+        if result is None or result.action == "integrate":
+            # 直接通过
+            approved.append(card)
+            summary.approved += 1
+        elif result.action == "reject":
+            summary.rejected += 1
+        else:
+            # 需要 review
+            summary.review += 1
+            review_items.append(ReviewItem(
+                card_id=card.id,
+                issue=result.review_reason or "需要人工决定",
+                suggestion=result.dimensions.placement.suggested_path if result.dimensions.placement else "",
+                evidence=result.dimensions.credibility.evidence if result.dimensions.credibility else "",
+            ))
+
+    # 保存结果
+    review_dir = INTERMEDIATE_DIR / "review" / atomize_dir.name
+    review_dir.mkdir(parents=True, exist_ok=True)
+
+    save_intermediate(approved, "cards_approved.json", review_dir)
+
+    # 生成 review 报告（如果有）
+    if review_items:
+        report = ReviewReport(
+            date=datetime.now().isoformat(),
+            source_file=atomize_dir.name,
+            summary=summary,
+            items=review_items,
+        )
+        # 保存为 Markdown
+        review_md_lines = [
+            f"# Review: {atomize_dir.name} — {report.date}",
+            "",
+            "## 摘要",
+            f"- 处理卡片: {summary.total_cards}",
+            f"- 直接入库: {summary.approved}",
+            f"- 待你决定: {summary.review}",
+            f"- 建议删除: {summary.rejected}",
+            "",
+            "---",
+            "",
+        ]
+        for i, item in enumerate(review_items, 1):
+            review_md_lines.extend([
+                f"### {i}. {item.issue}",
+                f"**来源**: `{atomize_dir.name}` → \"{item.card_id}\"",
+                f"**问题**: {item.issue}",
+                f"**建议**: {item.suggestion}",
+                f"**证据**: {item.evidence}",
+                "",
+            ])
+
+        (review_dir / "cards_review.md").write_text("\n".join(review_md_lines), encoding="utf-8")
+        print(f"       ⚠️  {summary.review} items need review")
+    else:
+        print(f"       ✅ All {summary.approved} cards approved")
+
+    return review_dir / "cards_approved.json", review_dir / "cards_review.md"
 
 
 def stage_integrate(approved_path: Path, output_contract: dict[str, str]):
-    """Stage 4: Integrate approved cards into myObsidian.
-
-    Args:
-        approved_path: 通过评审的卡片列表
-        output_contract: 用户自定义输出规范（从 template/ 加载）
-    """
+    """Stage 4: Integrate approved cards into myObsidian."""
     print(f"[4/5] INTEGRATE")
-    # TODO: Implement myObsidian integration
-    # - Load output_contract templates
-    # - Apply HBZ style, frontmatter format, and symbol rules
-    # - Determine target path (domain/subtopic.md)
-    # - Check for existing files
-    # - Embedding search for related cards
-    # - Write/update myObsidian files
-    pass
+
+    from .integrate import integrate
+    from .schemas import CardDraft
+    import json
+
+    # 读取通过评审的卡片
+    cards_data = json.loads(approved_path.read_text(encoding="utf-8"))
+    cards = [
+        CardDraft(
+            id=c["id"],
+            title=c["title"],
+            domain=c["domain"],
+            subtopic=c["subtopic"],
+            content=c.get("content", ""),
+            source_refs=c.get("source_refs", []),
+            tags=c.get("tags", []),
+        )
+        for c in cards_data
+    ]
+
+    if not cards:
+        print("       No cards to integrate")
+        return
+
+    # 逐张整合
+    for card in cards:
+        try:
+            result = integrate(card, None, output_contract)
+            if result.created:
+                for f in result.created:
+                    print(f"       ✅ Created: {f.path}")
+            if result.updated:
+                for f in result.updated:
+                    print(f"       🔄 Updated: {f.path}")
+            if result.errors:
+                for e in result.errors:
+                    print(f"       ❌ Error: {e.error}")
+        except Exception as e:
+            print(f"       ❌ Failed to integrate {card.id}: {e}")
 
 
 def stage_index():
     """Stage 5: Update TOC and indices."""
     print(f"[5/5] INDEX")
-    # TODO: Update myObsidian/_meta/toc.yaml
-    pass
+
+    from .index import index
+    index()
+    print(f"       → myObsidian/_meta/ updated")
 
 
 # ─── Main ────────────────────────────────────────────────────────
@@ -163,9 +314,29 @@ def process_file(source_path: Path):
         if review_path.exists() and review_path.stat().st_size > 10:
             print(f"⚠️  Review file: {review_path}")
 
+        # Git commit
+        try:
+            import subprocess
+            subprocess.run(
+                ["git", "add", "-A"],
+                cwd=PROJECT_ROOT,
+                check=True,
+                capture_output=True,
+            )
+            subprocess.run(
+                ["git", "commit", "-m", f"feat: process {source_path.name}"],
+                cwd=PROJECT_ROOT,
+                check=True,
+                capture_output=True,
+            )
+            print(f"📝 Git committed")
+        except Exception as e:
+            print(f"⚠️  Git commit failed: {e}")
+
     except Exception as e:
         print(f"\n❌ Error processing {source_path.name}: {e}")
-        # Log error but continue
+        import traceback
+        traceback.print_exc()
 
 
 def main():
@@ -180,7 +351,7 @@ def main():
     else:
         # Process all new files in newData/
         if not NEWDATA_DIR.exists():
-            print(f"Inbox not found: {NEWDATA_DIR}")
+            print(f"newData not found: {NEWDATA_DIR}")
             print("Create it with: mkdir newData")
             return
 
