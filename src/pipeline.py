@@ -16,7 +16,7 @@ from datetime import datetime
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 INBOX_DIR = PROJECT_ROOT / "inbox"
 INTERMEDIATE_DIR = PROJECT_ROOT / "intermediate"
-VAULT_DIR = PROJECT_ROOT / "vault"
+VAULT_DIR = PROJECT_ROOT / "myObsidian"
 PROCESSED_LOG = PROJECT_ROOT / "inbox" / ".processed"
 
 # ─── Helpers ─────────────────────────────────────────────────────
@@ -80,20 +80,20 @@ def stage_review(atomize_dir: Path) -> tuple[Path, Path]:
 
 
 def stage_integrate(approved_path: Path):
-    """Stage 4: Integrate approved cards into vault."""
+    """Stage 4: Integrate approved cards into myObsidian."""
     print(f"[4/5] INTEGRATE")
-    # TODO: Implement vault integration
+    # TODO: Implement myObsidian integration
     # - Determine target path (domain/subtopic.md)
     # - Check for existing files
     # - Embedding search for related cards
-    # - Write/update vault files
+    # - Write/update myObsidian files
     pass
 
 
 def stage_index():
     """Stage 5: Update TOC and indices."""
     print(f"[5/5] INDEX")
-    # TODO: Update vault/_meta/toc.yaml
+    # TODO: Update myObsidian/_meta/toc.yaml
     pass
 
 

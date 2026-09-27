@@ -100,7 +100,7 @@ ReviewResult:
 ```yaml
 IntegrateOutput:
   created:
-    - path: string         # vault/domain/subtopic.md
+    - path: string         # myObsidian/domain/subtopic.md
       card_count: int
   updated:
     - path: string
@@ -109,8 +109,8 @@ IntegrateOutput:
     - target_path: string
       source_cards: list[string]
   links_created:
-    - from: string         # vault/domain/subtopic.md#section
-      to: string           # vault/other/other.md#section
+    - from: string         # myObsidian/domain/subtopic.md#section
+      to: string           # myObsidian/other/other.md#section
   errors:
     - card_id: string
       error: string

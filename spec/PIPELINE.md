@@ -49,7 +49,7 @@
     ↓
 阶段 5: INDEX（索引）
     ↓
-[vault/ 更新完成]
+[myObsidian/ 更新完成]
 ```
 
 ### 阶段 1: EXTRACT（提取）
@@ -187,18 +187,18 @@ intermediate/review/{file_hash}/
 
 ### 阶段 4: INTEGRATE（整合）
 
-**目的**：把通过评审的卡片写入知识库 vault，建立与其他卡片的链接。
+**目的**：把通过评审的卡片写入知识库 myObsidian，建立与其他卡片的链接。
 
 **输入**：`intermediate/review/{hash}/cards_approved.yaml`
 
-**输出**：`vault/` 中的 markdown 文件被创建或更新
+**输出**：`myObsidian/` 中的 markdown 文件被创建或更新
 
 **整合流程**（对每张卡片）：
 
 ```
 1. 确定目标位置
    ├── LLM 根据 card.domain + card.subtopic 推断目标路径
-   └── 路径格式: vault/{domain}/{subtopic}.md
+   └── 路径格式: myObsidian/{domain}/{subtopic}.md
 
 2. 检索已有内容
    ├── 对知识库执行 embedding 检索（top-k=5）
@@ -209,7 +209,7 @@ intermediate/review/{file_hash}/
    └── 判断依据: 检索结果 + 卡片内容 + 已有文件结构
 
 4. 执行写入
-   ├── 新建: 创建 vault/{domain}/{subtopic}.md，写入卡片内容
+   ├── 新建: 创建 myObsidian/{domain}/{subtopic}.md，写入卡片内容
    ├── 合并: 把内容整合到目标文件的合适位置
    └── 更新: 在目标文件中添加内容，更新 TOC
 
@@ -218,7 +218,7 @@ intermediate/review/{file_hash}/
    └── 同时在相关卡片的合适位置添加回链（如果空间允许）
 ```
 
-**vault 文件结构**：
+**myObsidian 文件结构**：
 
 ```markdown
 ---
@@ -265,7 +265,7 @@ confidence: high
 
 **输出**：
 ```
-vault/_meta/
+myObsidian/_meta/
 ├── README.md          ← 全局导航（所有领域列表）
 ├── toc.yaml           ← 全局目录结构
 └── reviews/           ← review 文件输出目录
@@ -273,8 +273,8 @@ vault/_meta/
 ```
 
 **每阶段输出后自动更新**：
-- `vault/_meta/toc.yaml`：记录所有 `domain/subtopic` 文件树
-- `vault/{domain}/README.md`：每个领域文件夹的索引（可选，按需生成）
+- `myObsidian/_meta/toc.yaml`：记录所有 `domain/subtopic` 文件树
+- `myObsidian/{domain}/README.md`：每个领域文件夹的索引（可选，按需生成）
 
 ---
 
@@ -342,7 +342,7 @@ tags:                               ← 检索标签
 
 - 单个文件提取失败 → 跳过，记录到 `intermediate/errors/`，继续处理其他文件
 - LLM 调用失败 → 重试 1 次，仍失败则标记该卡片为 `review` 状态
-- vault 写入冲突 → 生成带时间戳的备选文件名，写入 review 文件通知用户
+- myObsidian 写入冲突 → 生成带时间戳的备选文件名，写入 review 文件通知用户
 
 ---
 
