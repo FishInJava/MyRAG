@@ -41,20 +41,23 @@ ExtractOutput:
 ```yaml
 CardDraft:
   id: string                # card_001, card_002...
-  title: string             # 3-10 字
+  title: string             # 候选标题
   domain: string            # 候选领域
   subtopic: string          # 候选子主题
-  content: string           # AI 重写内容，200-800 字
+  content: string           # AI 重写内容，长度不限
   source_refs:
     - file: string          # 来源文件路径
       location: string      # 原文位置描述
-      quote: string | null  # 关键原文片段，≤50字
+      quote: string | null  # 关键原文片段（可选）
   tags: list[string]
 ```
 
 ---
 
-## 4. 评审结果
+## 4. 评审结果（可选）
+
+> 简单的想法、一句话洞察可以直接整合，不需要完整的评审流程。
+> 只有当内容存在可信度、冗余度、归属不确定时才需要评审。
 
 ```yaml
 ReviewResult:
@@ -134,7 +137,9 @@ VaultFrontmatter:
 
 ---
 
-## 7. Review 报告
+## 7. Review 报告（可选）
+
+> 只有存在不确定项时才生成。简单的想法、一句话洞察直接整合，不产生 review 报告。
 
 ```yaml
 ReviewReport:
@@ -149,5 +154,5 @@ ReviewReport:
     - card_id: string
       issue: string        # 一句话描述问题
       suggestion: string   # AI 建议的处理方式
-      evidence: string     # 精简证据，≤50字
+      evidence: string     # 精简证据
 ```

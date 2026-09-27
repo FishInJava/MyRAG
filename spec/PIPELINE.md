@@ -126,14 +126,22 @@ cards:
 
 **目的**：对每张卡片草稿执行多维评审，分类处理。
 
+**评审触发条件**：
+- 简单的想法、一句话洞察、明显正确的常识 → **直接进入阶段 4，跳过评审**
+- 只有存在以下情况时才需要评审：
+  - 内容可信度存疑（可能过时、与已知冲突）
+  - 与已有知识库内容高度重复
+  - 归属不确定（应该放在哪个领域/子主题）
+  - 内容需要清洗（口癖、情绪、冗余）
+
 **输入**：`intermediate/atomize/{hash}/cards.yaml`
 
-**输出**：
+**输出**（仅在触发评审时生成）：
 ```
 intermediate/review/{file_hash}/
 ├── cards_approved.yaml    ← 通过评审的卡片
-├── cards_review.md        ← 待用户决定的精简报告
-└── review_meta.yaml       ← 本次评审统计
+├── cards_review.md        ← 待用户决定的精简报告（可选）
+└── review_meta.yaml       ← 本次评审统计（可选）
 ```
 
 **评审维度**（每个维度判断 pass / warn / fail）：
@@ -156,7 +164,9 @@ intermediate/review/{file_hash}/
 - **⚠️ review**：写入 `cards_review.md`，等待用户事后决定
 - **🗑️ rejected**：记录原因，不进入知识库
 
-**review 文件格式**（`cards_review.md`）：
+**默认行为**：大多数卡片应该直接 approved 进入阶段 4。只有 AI 置信度不足时才标记为 review。不要过度评审——一个简单的想法、一句话洞察，找到它在知识库中的位置，直接加进去即可。
+
+**review 文件格式**（`cards_review.md`，仅在生成 review 时创建）：
 
 ```markdown
 # Review: {source_file} — {date}
