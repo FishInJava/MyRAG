@@ -19,13 +19,13 @@
 ```
 原始数据（只读）
   ├── Obsidian vault（已有笔记）
-  ├── inbox/（新放入的文件：PDF、HTML、DOCX、TXT）
+  ├── newData/（新放入的文件：PDF、HTML、DOCX、TXT）
   └── sessions/（导出的 Session transcript）
 
 MyRAG 仓库
   ├── spec/           ← AI 交接标准（权威源）
-  ├── src/            ← 管道实现（Python script）
-  ├── inbox/          ← 待处理文件（手动放入）
+  ├── extensions/            ← 管道实现（Python script）
+  ├── newData/          ← 待处理文件（手动放入）
   └── myObsidian/          ← 最终知识库（Obsidian 打开这个目录）
       ├── 领域1/
       │   ├── 子主题1.md    ← "一本书"的一章
@@ -36,8 +36,8 @@ MyRAG 仓库
 
 ## 使用方式
 
-1. 把待处理的文件放入 `inbox/`
-2. 运行管道：`python src/pipeline.py`
+1. 把待处理的文件放入 `newData/`
+2. 运行管道：`python extensions/pipeline.py`
 3. 管道输出到 `myObsidian/`
 4. 如有不确定项，查看 `myObsidian/_meta/reviews/` 中的 `.review.md` 文件
 5. 用 Obsidian 打开 `myObsidian/` 阅读

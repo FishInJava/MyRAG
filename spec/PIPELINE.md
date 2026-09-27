@@ -20,13 +20,13 @@
 
 ### 1.2 输入目录
 
-- **`inbox/`**：用户手动放入的待处理文件
+- **`newData/`**：用户手动放入的待处理文件
 - **`sources/obsidian/`**：对 Obsidian vault 的只读引用（符号链接或复制）
 - **`sources/sessions/`**：导出的 Session transcript（V2 支持）
 
 ### 1.3 输入去重
 
-处理前检查 `inbox/.processed/` 记录。对每个文件计算 SHA256：
+处理前检查 `newData/.processed/` 记录。对每个文件计算 SHA256：
 - 已存在 → 跳过
 - 新增 → 加入处理队列
 
@@ -56,7 +56,7 @@
 
 **目的**：把不同格式的源文件统一为纯文本 + 结构化元数据。
 
-**输入**：`inbox/` 中的文件
+**输入**：`newData/` 中的文件
 
 **输出**：
 ```
@@ -68,7 +68,7 @@ intermediate/extract/{file_hash}/
 
 `meta.yaml` 结构：
 ```yaml
-source_path: inbox/xxx.pdf
+source_path: newData/xxx.pdf
 source_type: pdf
 file_hash: sha256:abc123
 extracted_at: 2024-09-27T10:00:00Z
@@ -227,7 +227,7 @@ subtopic: 异步
 created: 2024-09-27
 updated: 2024-09-27
 sources:
-  - inbox/python-async-notes.md
+  - newData/python-async-notes.md
   - sources/obsidian/async-learning.md
 confidence: high
 ---
@@ -297,7 +297,7 @@ subtopic: 子主题名（如：异步、Docker）
 created: ISO 日期
 updated: ISO 日期
 sources:          ← 来源文件列表
-  - inbox/xxx.pdf
+  - newData/xxx.pdf
   - sources/obsidian/yyy.md
 confidence: high | medium | low    ← AI 评审可信度
 reviewed: true | false             ← 是否经过用户复查
@@ -327,8 +327,8 @@ tags:                               ← 检索标签
 用户手动指定输入路径，AI 执行完整管道：
 
 ```
-@inbox/ 处理新放入的文件
-@inbox/xxx.pdf 只处理这个文件
+@newData/ 处理新放入的文件
+@newData/xxx.pdf 只处理这个文件
 ```
 
 ### 4.2 执行要求

@@ -36,7 +36,7 @@ CHROMA_DB_PATH=chroma/
 ## 核心脚本结构
 
 ```
-src/
+extensions/
 ├── pipeline.py           # 主入口，5 阶段编排
 ├── extract.py            # 阶段 1: 提取
 ├── atomize.py            # 阶段 2: 原子化
@@ -50,11 +50,11 @@ src/
 ## 运行
 
 ```bash
-# 处理 inbox/ 中所有新增文件
-python src/pipeline.py
+# 处理 newData/ 中所有新增文件
+python extensions/pipeline.py
 
 # 处理指定文件
-python src/pipeline.py inbox/xxx.pdf
+python extensions/pipeline.py newData/xxx.pdf
 ```
 
 ## 实现优先级

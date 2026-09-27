@@ -2,8 +2,8 @@
 MyRAG Pipeline — V1 Skeleton
 
 Usage:
-    python pipeline.py                  # 处理 inbox/ 中所有新增文件
-    python pipeline.py inbox/xxx.pdf   # 处理指定文件
+    python pipeline.py                  # 处理 newData/ 中所有新增文件
+    python pipeline.py newData/xxx.pdf   # 处理指定文件
 """
 
 import sys
@@ -14,10 +14,10 @@ from datetime import datetime
 # ─── Configuration ───────────────────────────────────────────────
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-INBOX_DIR = PROJECT_ROOT / "inbox"
+NEWDATA_DIR = PROJECT_ROOT / "newData"
 INTERMEDIATE_DIR = PROJECT_ROOT / "intermediate"
-VAULT_DIR = PROJECT_ROOT / "myObsidian"
-PROCESSED_LOG = PROJECT_ROOT / "inbox" / ".processed"
+MYOBSIDIAN_DIR = PROJECT_ROOT / "myObsidian"
+PROCESSED_LOG = PROJECT_ROOT / "newData" / ".processed"
 
 # ─── Helpers ─────────────────────────────────────────────────────
 
@@ -137,16 +137,16 @@ def main():
             else:
                 print(f"File not found: {arg}")
     else:
-        # Process all new files in inbox/
-        if not INBOX_DIR.exists():
-            print(f"Inbox not found: {INBOX_DIR}")
-            print("Create it with: mkdir inbox")
+        # Process all new files in newData/
+        if not NEWDATA_DIR.exists():
+            print(f"Inbox not found: {NEWDATA_DIR}")
+            print("Create it with: mkdir newData")
             return
 
-        files = [f for f in INBOX_DIR.iterdir()
+        files = [f for f in NEWDATA_DIR.iterdir()
                  if f.is_file() and not f.name.startswith(".")]
         if not files:
-            print("No files to process in inbox/")
+            print("No files to process in newData/")
             return
 
         for f in files:

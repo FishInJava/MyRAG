@@ -9,7 +9,7 @@
 
 ```yaml
 InputMeta:
-  source_path: string       # 源文件路径（相对 inbox/ 或绝对路径）
+  source_path: string       # 源文件路径（相对 newData/ 或绝对路径）
   source_type: enum[pdf, html, docx, txt, md, obsidian]
   file_hash: string         # SHA256
   title: string | null
