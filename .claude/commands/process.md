@@ -1,6 +1,6 @@
 ---
-name: ingest
-description: "处理 newData/ 中的文件，经 AI 评审后输出到 myObsidian/ 知识库。用法：/ingest [文件或目录路径]"
+name: process
+description: "处理 newData/ 中的文件，经 AI 评审后输出到 myObsidian/ 知识库。用法：/process [文件或目录路径]"
 ---
 
 你正在执行 MyRAG 知识库管道的入口指令。
