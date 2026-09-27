@@ -18,6 +18,27 @@ NEWDATA_DIR = PROJECT_ROOT / "newData"
 INTERMEDIATE_DIR = PROJECT_ROOT / "intermediate"
 MYOBSIDIAN_DIR = PROJECT_ROOT / "myObsidian"
 PROCESSED_LOG = PROJECT_ROOT / "newData" / ".processed"
+TEMPLATES_DIR = PROJECT_ROOT / "00模板"
+
+# ─── Output Contract (用户自定义的输出规范) ────────────────────────
+
+def load_output_contract() -> dict[str, str]:
+    """Load all template files from 00模板/ as the output contract.
+
+    These files define the required format, style, and frontmatter for
+    every markdown file the pipeline produces. They must be loaded before
+    stages 2 (ATOMIZE) and 4 (INTEGRATE) and injected into the LLM prompt.
+
+    Returns:
+        dict mapping filename → full text content
+    """
+    contract = {}
+    if not TEMPLATES_DIR.exists():
+        return contract
+    for f in sorted(TEMPLATES_DIR.rglob("*.md")):
+        contract[f.name] = f.read_text(encoding="utf-8")
+    return contract
+
 
 # ─── Helpers ─────────────────────────────────────────────────────
 
@@ -59,10 +80,16 @@ def stage_extract(source_path: Path) -> Path:
     return output_dir
 
 
-def stage_atomize(extract_dir: Path) -> Path:
-    """Stage 2: Atomize text into knowledge cards."""
+def stage_atomize(extract_dir: Path, output_contract: dict[str, str]) -> Path:
+    """Stage 2: Atomize text into knowledge cards.
+
+    Args:
+        output_contract: 用户自定义输出规范（从 00模板/ 加载）
+    """
     print(f"[2/5] ATOMIZE: {extract_dir.name}")
     # TODO: Implement LLM-based atomization
+    # - Load output_contract templates as part of LLM prompt
+    # - Apply HBZ style and frontmatter format from 00模板/
     output_dir = INTERMEDIATE_DIR / "atomize" / extract_dir.name
     output_dir.mkdir(parents=True, exist_ok=True)
     print(f"       → {output_dir}")
@@ -79,10 +106,17 @@ def stage_review(atomize_dir: Path) -> tuple[Path, Path]:
     return output_dir / "cards_approved.yaml", output_dir / "cards_review.md"
 
 
-def stage_integrate(approved_path: Path):
-    """Stage 4: Integrate approved cards into myObsidian."""
+def stage_integrate(approved_path: Path, output_contract: dict[str, str]):
+    """Stage 4: Integrate approved cards into myObsidian.
+
+    Args:
+        approved_path: 通过评审的卡片列表
+        output_contract: 用户自定义输出规范（从 00模板/ 加载）
+    """
     print(f"[4/5] INTEGRATE")
     # TODO: Implement myObsidian integration
+    # - Load output_contract templates
+    # - Apply HBZ style, frontmatter format, and symbol rules
     # - Determine target path (domain/subtopic.md)
     # - Check for existing files
     # - Embedding search for related cards
@@ -110,11 +144,18 @@ def process_file(source_path: Path):
         print(f"Already processed (hash: {fh}), skipping.")
         return
 
+    # Load user's output contract (must happen before any LLM call)
+    output_contract = load_output_contract()
+    if output_contract:
+        print(f"📋 Output contract loaded: {len(output_contract)} template files")
+    else:
+        print(f"⚠️  No output contract found at {TEMPLATES_DIR}")
+
     try:
         extract_dir = stage_extract(source_path)
-        atomize_dir = stage_atomize(extract_dir)
+        atomize_dir = stage_atomize(extract_dir, output_contract)
         approved_path, review_path = stage_review(atomize_dir)
-        stage_integrate(approved_path)
+        stage_integrate(approved_path, output_contract)
         stage_index()
 
         mark_processed(fh)
