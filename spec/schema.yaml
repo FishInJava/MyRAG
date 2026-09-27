@@ -1,0 +1,153 @@
+# Schema — 数据结构定义
+
+> 本文件定义管道各阶段的输入输出 schema。
+> 实现时可直接用此 YAML 做数据校验。
+
+---
+
+## 1. 输入文件元数据
+
+```yaml
+InputMeta:
+  source_path: string       # 源文件路径（相对 inbox/ 或绝对路径）
+  source_type: enum[pdf, html, docx, txt, md, obsidian]
+  file_hash: string         # SHA256
+  title: string | null
+  author: string | null
+  date: string | null       # ISO 8601
+  extracted_at: string      # ISO 8601
+```
+
+---
+
+## 2. 提取输出
+
+```yaml
+ExtractOutput:
+  meta: InputMeta
+  text: string              # 纯文本内容
+  structure:
+    sections:               # 章节结构（如有）
+      - heading: string
+        level: int          # 1-6
+        start_line: int
+        end_line: int | null
+```
+
+---
+
+## 3. 卡片草稿
+
+```yaml
+CardDraft:
+  id: string                # card_001, card_002...
+  title: string             # 3-10 字
+  domain: string            # 候选领域
+  subtopic: string          # 候选子主题
+  content: string           # AI 重写内容，200-800 字
+  source_refs:
+    - file: string          # 来源文件路径
+      location: string      # 原文位置描述
+      quote: string | null  # 关键原文片段，≤50字
+  tags: list[string]
+```
+
+---
+
+## 4. 评审结果
+
+```yaml
+ReviewResult:
+  card_id: string
+  overall: enum[approved, review, rejected]
+  dimensions:
+    credibility:
+      status: enum[pass, warn, fail]
+      note: string | null
+      evidence: string | null
+    noise:
+      status: enum[pass, warn, fail]
+      detected_types: list[string] | null
+      cleaned_content: string | null
+    redundancy:
+      status: enum[pass, warn, fail]
+      similar_cards:
+        - path: string
+          similarity: float  # 0.0-1.0
+          overlap: string | null
+      suggestion: enum[merge, supplement, reject] | null
+    placement:
+      suggested_path: string  # domain/subtopic.md
+      strategy: enum[merge, new, split, adjacent]
+      reasoning: string | null
+      confidence: enum[high, medium, low]
+    timeliness:
+      status: enum[pass, warn, fail]
+      time_context: string | null
+      note: string | null
+    completeness:
+      status: enum[pass, warn, fail]
+      missing_context: string | null
+      suggestion: string | null
+  action: enum[integrate, review, reject]
+  review_reason: string | null
+```
+
+---
+
+## 5. 整合输出
+
+```yaml
+IntegrateOutput:
+  created:
+    - path: string         # vault/domain/subtopic.md
+      card_count: int
+  updated:
+    - path: string
+      added_sections: list[string]
+  merged:
+    - target_path: string
+      source_cards: list[string]
+  links_created:
+    - from: string         # vault/domain/subtopic.md#section
+      to: string           # vault/other/other.md#section
+  errors:
+    - card_id: string
+      error: string
+```
+
+---
+
+## 6. Vault 文件 frontmatter
+
+```yaml
+VaultFrontmatter:
+  domain: string
+  subtopic: string
+  created: string          # ISO 8601
+  updated: string          # ISO 8601
+  sources: list[string]
+  confidence: enum[high, medium, low]
+  reviewed: boolean
+  tags: list[string]
+```
+
+---
+
+## 7. Review 报告
+
+```yaml
+ReviewReport:
+  date: string             # ISO 8601
+  source_file: string
+  summary:
+    total_cards: int
+    approved: int
+    review: int
+    rejected: int
+  items:
+    - card_id: string
+      issue: string        # 一句话描述问题
+      suggestion: string   # AI 建议的处理方式
+      evidence: string     # 精简证据，≤50字
+```
