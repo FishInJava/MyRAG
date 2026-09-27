@@ -1,7 +1,7 @@
-# Implementation Reference — 技术实现参考
+# Implementation Reference — 实现索引入口
 
-> 本文档记录 V1 的技术选型和实现细节。
-> 实现随时可替换，只要输入输出符合 `schema.yaml` 和 `PIPELINE.md` 的定义。
+> 本文档是给 AI 看的实现索引：技术栈选型 + 脚本职责 + 实现优先级。
+> 完整规范见 `PIPELINE.md`，数据结构见 `schema.yaml`。
 
 ---
 
@@ -17,23 +17,7 @@
 | 版本控制 | git | 自动 commit |
 | Session 解析 | 手动导出 JSON | V2 |
 
-## 安装
-
-```bash
-python -m venv .venv
-.venv\Scripts\activate  # Windows
-pip install chromadb litellm pdfplumber pypandoc python-dotenv pyyaml
-```
-
-## 环境变量
-
-```env
-ANTHROPIC_API_KEY=xxx
-OPENAI_API_KEY=xxx       # 可选，用于 embedding
-CHROMA_DB_PATH=chroma/
-```
-
-## 核心脚本结构
+## 脚本结构
 
 ```
 extensions/
@@ -45,16 +29,6 @@ extensions/
 ├── index.py              # 阶段 5: 索引
 ├── schemas.py            # schema 定义 + 校验
 └── config.py             # 配置加载
-```
-
-## 运行
-
-```bash
-# 处理 newData/ 中所有新增文件
-python extensions/pipeline.py
-
-# 处理指定文件
-python extensions/pipeline.py newData/xxx.pdf
 ```
 
 ## 实现优先级
