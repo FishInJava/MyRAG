@@ -2,11 +2,12 @@
 MyRAG Pipeline — V1 实现
 
 Usage:
-    python pipeline.py                  # 处理 newData/ 中所有新增文件
-    python pipeline.py newData/xxx.pdf   # 处理指定文件
+    python pipeline.py                        # 处理 newData/ 中所有新增文件
+    python pipeline.py newData/xxx.pdf         # 处理指定文件
+    python pipeline.py --dry-run               # 预览 newData/ 中将要处理的文件，零副作用
+    python pipeline.py --dry-run newData/xxx.pdf  # 预览指定文件，零副作用
 """
 
-import sys
 import hashlib
 import json
 from pathlib import Path
@@ -284,6 +285,53 @@ def stage_index():
 
 # ─── Main ────────────────────────────────────────────────────────
 
+def collect_newdata_files() -> list[Path]:
+    """List files in newData/ that the full-scan mode would process."""
+    return [f for f in NEWDATA_DIR.iterdir()
+            if f.is_file() and not f.name.startswith(".")]
+
+
+def dry_run(paths: list[str] | None = None):
+    """Preview what would be processed, without any side effects."""
+    print("Dry run: 预览模式，不会写入 intermediate/、不会追加 .processed、不会调用模型")
+
+    if paths:
+        targets = []
+        for arg in paths:
+            path = Path(arg)
+            if path.is_file():
+                targets.append(path)
+            else:
+                print(f"File not found: {arg}")
+    else:
+        if not NEWDATA_DIR.exists():
+            print(f"newData not found: {NEWDATA_DIR}")
+            print("Create it with: mkdir newData")
+            return
+
+        targets = collect_newdata_files()
+        if not targets:
+            print("No files to process in newData/")
+            return
+
+    will_process = 0
+    will_skip = 0
+
+    if targets:
+        print()
+        for path in targets:
+            fh = file_hash(path)
+            if is_processed(fh):
+                will_skip += 1
+                print(f"  skip     {path.name:<24} sha256={fh}  (已在 .processed 中，跳过)")
+            else:
+                will_process += 1
+                print(f"  process  {path.name:<24} sha256={fh}")
+
+    print()
+    print(f"Dry run: {will_process} 个文件将被处理，{will_skip} 个已处理将跳过。")
+
+
 def process_file(source_path: Path):
     """Run full pipeline on a single source file."""
     print(f"\n{'='*60}")
@@ -339,10 +387,33 @@ def process_file(source_path: Path):
         traceback.print_exc()
 
 
-def main():
-    if len(sys.argv) > 1:
+def main(argv: list[str] | None = None):
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        prog="pipeline.py",
+        description="MyRAG Pipeline — 处理 newData/ 中的文件或指定文件。",
+    )
+    parser.add_argument(
+        "paths",
+        nargs="*",
+        metavar="path",
+        help="指定要处理的文件；省略时处理 newData/ 下的全部新增文件",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="预览将要处理的文件及各自 hash，不做任何写入、不调用模型",
+    )
+    args = parser.parse_args(argv)
+
+    if args.dry_run:
+        dry_run(args.paths)
+        return
+
+    if args.paths:
         # Process specific file(s)
-        for arg in sys.argv[1:]:
+        for arg in args.paths:
             path = Path(arg)
             if path.exists():
                 process_file(path)
@@ -355,8 +426,7 @@ def main():
             print("Create it with: mkdir newData")
             return
 
-        files = [f for f in NEWDATA_DIR.iterdir()
-                 if f.is_file() and not f.name.startswith(".")]
+        files = collect_newdata_files()
         if not files:
             print("No files to process in newData/")
             return
